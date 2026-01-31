@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-dark: #0f172a;
+  --color-neon-green: #10b981;
+  --color-neon-orange: #f59e0b;
+  --color-neon-magenta: #d946ef;
+  --color-neon-blue: #0ea5e9;
+  --font-mono: "Fira Code", "JetBrains Mono", monospace;
+
+  --animate-scanline: scanline 6s linear infinite;
+  --animate-holo-slide: holo-slide 4s linear infinite;
+
+  @keyframes scanline {
+    0% {
+      transform: translateY(0);
+    }
+
+    100% {
+      transform: translateY(100vh);
+    }
+  }
+
+  @keyframes holo-slide {
+    0% {
+      transform: translateY(-100%);
+    }
+
+    100% {
+      transform: translateY(100%);
+    }
+  }
+}
+
+:root {
+  background-color: var(--color-dark);
+  color: #f8fafc;
+  font-family: var(--font-mono);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+@layer base {
+  input[type="range"] {
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-runnable-track {
+    @apply bg-slate-800 h-1 rounded-full;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    appearance: none;
+    @apply mt-[-6px] h-4 w-4 rounded-full shadow-[0_0_10px_currentColor];
+    background-color: currentColor;
+  }
+
+  .cyber-box {
+    @apply bg-slate-900/40 backdrop-blur-md border border-slate-700/50 rounded-lg relative overflow-hidden transition-all;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  }
+
+  .cyber-box::before {
+    content: "";
+    @apply absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-slate-500/30 to-transparent;
+  }
+
+  .neon-text-green {
+    text-shadow: 0 0 8px var(--color-neon-green);
+    color: var(--color-neon-green);
+  }
+
+  .neon-text-orange {
+    text-shadow: 0 0 8px var(--color-neon-orange);
+    color: var(--color-neon-orange);
+  }
+
+  .neon-text-magenta {
+    text-shadow: 0 0 8px var(--color-neon-magenta);
+    color: var(--color-neon-magenta);
+  }
+
+  .neon-text-blue {
+    text-shadow: 0 0 8px var(--color-neon-blue);
+    color: var(--color-neon-blue);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    @apply w-1 h-1;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    @apply bg-slate-800 rounded-full hover:bg-slate-700;
+  }
+}
+
+.scanline {
+  @apply fixed inset-0 pointer-events-none z-50;
+  background: linear-gradient(to bottom,
+      transparent 0%,
+      rgba(16, 185, 129, 0.05) 50%,
+      transparent 100%);
+  background-size: 100% 4px;
+  animation: scanline 8s linear infinite;
+}
+
+.holographic {
+  position: relative;
+}
+
+.holographic::after {
+  content: '';
+  @apply absolute inset-0 pointer-events-none;
+  background: linear-gradient(transparent 0%,
+      rgba(16, 185, 129, 0.03) 50%,
+      transparent 100%);
+  animation: holo-slide 3s linear infinite;
+}
