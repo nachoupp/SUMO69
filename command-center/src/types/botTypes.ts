@@ -43,7 +43,6 @@ export interface BotProfile {
 // ═══════════════════════════════════════════════════════════════
 
 const O = 0;    // Off
-const D = 50;   // Dim
 const B = 100;  // Bright
 
 export const DEFAULT_MATRIX_DESIGNS: MatrixDesign[] = [

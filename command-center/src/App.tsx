@@ -19,10 +19,6 @@ function App() {
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const { isConnected, isConnecting, connect, disconnect, deviceName, error } = usePybricksBle();
 
-  const handleModeChange = () => {
-    setActiveMode((prev) => (prev + 1) % 4);
-  };
-
   const status = isConnecting
     ? { label: 'SYNCHRONIZING...', color: 'text-neon-orange animate-pulse' }
     : isConnected

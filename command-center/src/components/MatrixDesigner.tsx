@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import type { MatrixDesign } from '../types/botTypes';
 import { createEmptyMatrixDesign, generateId } from '../types/botTypes';
-import { Grid3X3, Save, RotateCcw, Sparkles, Trash2 } from 'lucide-react';
+import { Grid3X3, Save, Sparkles, Trash2 } from 'lucide-react';
 
 interface MatrixDesignerProps {
     value: MatrixDesign;

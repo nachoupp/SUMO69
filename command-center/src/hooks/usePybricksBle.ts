@@ -149,7 +149,9 @@ export function usePybricksBle() {
     const writeRaw = useCallback(async (bytes: Uint8Array) => {
         if (!rxCharRef.current) return;
         try {
-            await rxCharRef.current.writeValue(bytes);
+            // Create a new Uint8Array with its own ArrayBuffer to satisfy TypeScript
+            const buffer = new Uint8Array(bytes).buffer;
+            await rxCharRef.current.writeValue(buffer);
         } catch (err) {
             console.error("Write Raw Error:", err);
         }
