@@ -11,13 +11,14 @@ import { Terminal, Cpu, Zap, Shield, Settings, Bluetooth, BluetoothOff, AlertTri
 
 
 import { ScriptUploader } from './components/ScriptUploader';
+import { HubTerminal } from './components/HubTerminal';
 
 function App() {
   const [config, setConfig] = useState<SumoConfig>(DEFAULT_CONFIG);
   const [activeMode, setActiveMode] = useState(0);
   const [highlightedPort] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const { isConnected, isConnecting, connect, disconnect, deviceName, error } = usePybricksBle();
+  const { isConnected, isConnecting, connect, disconnect, deviceName, error, output, sendCommand, clearOutput } = usePybricksBle();
 
   const status = isConnecting
     ? { label: 'SYNCHRONIZING...', color: 'text-neon-orange animate-pulse' }
@@ -256,6 +257,15 @@ function App() {
 
         {/* ⚙️ Right Column: AI Assistant & Code Export */}
         <aside className="w-[450px] border-l border-neon-green/10 bg-slate-950/50 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+
+          <HubTerminal
+            isConnected={isConnected}
+            output={output}
+            sendCommand={sendCommand}
+            clearOutput={clearOutput}
+          />
+
+          <div className="h-px bg-white/5" />
 
           <ScriptUploader config={config} />
         </aside>

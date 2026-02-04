@@ -7,31 +7,53 @@ interface CodeExporterProps {
     config: SumoConfig;
 }
 
-const BASE_SCRIPT = `from pybricks.hubs import PrimeHub, InventorHub
+// Generate model-specific script
+function generateCode(config: SumoConfig): string {
+    const isYellow = config.ROBOT_MODEL === 'YELLOW';
+
+    const modelParams = isYellow
+        ? `# Específicos Martillo (YELLOW)
+ANGULO_GOLPE = ${config.ANGULO_GOLPE}
+ACTION_SPEED = ${config.VELOCIDAD_GOLPE}
+GOLPE_REPETICIONES = ${config.GOLPE_MANUAL_REPETICIONES}`
+        : `# Específicos Pala (BLUE)
+EMBRAGUE_PALA_ACTIVO = True
+LIFT_HIGH_POS = ${config.LIFT_HIGH_POS}`;
+
+    const modelHardware = isYellow
+        ? `# Puerto D: Motor Acción (Martillo)
+motor_action = Motor(Port.D)
+# Puerto C: Sensor de Fuerza
+sensor_impacto = ForceSensor(Port.C)`
+        : `# Puerto D: Motor Acción (Elevación Pala)
+motor_action = Motor(Port.D)
+# Puerto C: Motor Inclinación
+mot_tilt = Motor(Port.C)`;
+
+    return `from pybricks.hubs import PrimeHub, InventorHub
 from pybricks.pupdevices import Motor, UltrasonicSensor, Remote, ColorSensor, ForceSensor
 from pybricks.parameters import Button, Color, Direction, Port, Side, Icon, Stop
 from pybricks.robotics import DriveBase
 from pybricks.tools import wait, StopWatch
+import sys
 
 # ==============================================================================
-# === LIVE CONFIG ===
-ROBOT_MODEL = "%ROBOT_MODEL%"
-MARCHAS_CAJA = %MARCHAS_CAJA%
-SENSIBILIDAD_GIRO = %SENSIBILIDAD_GIRO%
-ESTRATEGIA_ARIETE = %ESTRATEGIA_ARIETE%
-DIST_RETROCESO = %DIST_RETROCESO%
+# === LIVE CONFIG (${config.ROBOT_MODEL}) ===
+ROBOT_MODEL = "${config.ROBOT_MODEL}"
+MARCHAS_CAJA = [${config.MARCHAS_CAJA.join(', ')}]
+SENSIBILIDAD_GIRO = ${config.SENSIBILIDAD_GIRO.toFixed(1)}
+ACELERACION_BASE = ${config.ACELERACION_BASE}
 
-# Específicos Azul
-EMBRAGUE_PALA_ACTIVO = %EMBRAGUE_PALA_ACTIVO%
-LIFT_HIGH_POS = %LIFT_HIGH_POS%
+${modelParams}
 
-# Específicos Amarillo
-ANGULO_GOLPE = %ANGULO_GOLPE%
-VELOCIDAD_GOLPE = %VELOCIDAD_GOLPE%
+# IA y Sensores
+DISTANCIA_ATAQUE = ${config.DISTANCIA_ATAQUE}
+ESTRATEGIA_ARIETE = ${config.ESTRATEGIA_ARIETE ? 'True' : 'False'}
+DIST_RETROCESO = ${config.DIST_RETROCESO}
+UMBRAL_LINEA = ${config.UMBRAL_LINEA}
 
 # Comunes
-VOLUMEN_GENERAL = %VOLUMEN_GENERAL%
-UMBRAL_LINEA = %UMBRAL_LINEA%
+VOLUMEN_GENERAL = ${config.VOLUMEN_GENERAL}
 # ==============================================================================
 
 # --- HARDWARE SETUP ---
@@ -39,9 +61,9 @@ try: hub = PrimeHub()
 except: hub = InventorHub()
 hub.speaker.volume(VOLUMEN_GENERAL * 10)
 
-# Seguridad: Puerto B siempre prioridad
-sensor_suelo = ColorSensor(Port.B) 
-# Puerto A: Ojos
+# Seguridad: Puerto B siempre prioridad (sensor suelo)
+sensor_suelo = ColorSensor(Port.B)
+# Puerto A: Ojos (ultrasonido)
 sensor_ojos = UltrasonicSensor(Port.A)
 # Puertos E/F: Tracción DriveBase
 l_mot = Motor(Port.F, Direction.COUNTERCLOCKWISE)
@@ -49,36 +71,26 @@ r_mot = Motor(Port.E, Direction.CLOCKWISE)
 db = DriveBase(l_mot, r_mot, 56, 80)
 
 # Model Specific Hardware
-if ROBOT_MODEL == "YELLOW":
-    # Puerto D: Motor Martillo
-    mot_arma = Motor(Port.D)
-    # Puerto C: Sensor de Fuerza
-    sensor_impacto = ForceSensor(Port.C)
-else:
-    # Puerto D: Motor Elevación
-    mot_lift = Motor(Port.D)
-    # Puerto C: Motor Inclinación
-    mot_tilt = Motor(Port.C)
+${modelHardware}
 
 # --- LOGIC & MODES ---
-m_idx = 0 # [0: VERDE, 1: NARANJA, 2: MAGENTA, 3: AZUL]
+m_idx = 0  # [0: VERDE, 1: NARANJA, 2: MAGENTA, 3: AZUL]
 
 def set_mode(n):
     global m_idx
     m_idx = n
     cols = [Color.GREEN, Color.ORANGE, Color.MAGENTA, Color.BLUE]
     hub.light.on(cols[m_idx])
-    if rc: rc.light.on(cols[m_idx])
 
 # Double Vision Logic
 def show_dv(n):
     tens, units = n // 10, n % 10
     # ... (implementación de matriz LED con brillo 100/30)
 
-# Sakura Respect Logic
+# Sakura Respect Logic (KO Detection)
+# Hub montado con USB (FRONT) hacia arriba
 def check_crash():
-    if hub.imu.up() != Side.TOP:
-        # KO Countdown
+    if hub.imu.up() != Side.FRONT:
         hub.display.text("KO")
         wait(9000)
         sys.exit()
@@ -91,25 +103,18 @@ while True:
         db.straight(-100)
         db.turn(90)
     
+    # Verificar estado KO
+    check_crash()
+    
     # ... resto de la lógica ...
     wait(20)
 `;
+}
 
 export const CodeExporter: React.FC<CodeExporterProps> = ({ config }) => {
     const [copied, setCopied] = useState(false);
 
-    const generatedCode = BASE_SCRIPT
-        .replace('%ROBOT_MODEL%', config.ROBOT_MODEL)
-        .replace('%MARCHAS_CAJA%', `[${config.MARCHAS_CAJA.join(', ')}]`)
-        .replace('%SENSIBILIDAD_GIRO%', config.SENSIBILIDAD_GIRO.toFixed(1))
-        .replace('%ESTRATEGIA_ARIETE%', config.ESTRATEGIA_ARIETE ? "True" : "False")
-        .replace('%DIST_RETROCESO%', config.DIST_RETROCESO.toString())
-        .replace('%EMBRAGUE_PALA_ACTIVO%', config.EMBRAGUE_PALA_ACTIVO ? "True" : "False")
-        .replace('%LIFT_HIGH_POS%', config.LIFT_HIGH_POS.toString())
-        .replace('%ANGULO_GOLPE%', config.ANGULO_GOLPE.toString())
-        .replace('%VELOCIDAD_GOLPE%', config.VELOCIDAD_GOLPE.toString())
-        .replace('%VOLUMEN_GENERAL%', config.VOLUMEN_GENERAL.toString())
-        .replace('%UMBRAL_LINEA%', config.UMBRAL_LINEA.toString());
+    const generatedCode = generateCode(config);
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(generatedCode);
@@ -127,8 +132,8 @@ export const CodeExporter: React.FC<CodeExporterProps> = ({ config }) => {
                 <button
                     onClick={copyToClipboard}
                     className={`text-[9px] px-3 py-1 rounded transition-all font-bold flex items-center gap-1.5 border ${copied
-                            ? 'bg-neon-green/20 border-neon-green text-neon-green'
-                            : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                        ? 'bg-neon-green/20 border-neon-green text-neon-green'
+                        : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
                         }`}
                 >
                     {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}

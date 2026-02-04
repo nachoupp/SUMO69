@@ -17,6 +17,7 @@ interface CreationWizardProps {
     savedDesigns: MatrixDesign[];
     onSaveBot: (bot: BotProfile) => void;
     onSaveDesign: (design: MatrixDesign) => void;
+    onDeleteDesign: (id: string) => void;
     onCancel: () => void;
 }
 
@@ -49,6 +50,7 @@ export function CreationWizard({
     savedDesigns,
     onSaveBot,
     onSaveDesign,
+    onDeleteDesign,
     onCancel
 }: CreationWizardProps) {
     // === STATE ===
@@ -69,11 +71,11 @@ export function CreationWizard({
             case 'name': return botName.trim().length >= 3;
             case 'model': return true;
             case 'modes': return modeCount >= 1 && modeCount <= 4;
-            case 'configure': return currentModeIndex >= modeCount - 1;
+            case 'configure': return true; // goNext() handles mode sub-navigation
             case 'review': return true;
             default: return false;
         }
-    }, [currentStep, botName, modeCount, currentModeIndex]);
+    }, [currentStep, botName, modeCount]);
 
     const goNext = useCallback(() => {
         if (currentStep === 'configure' && currentModeIndex < modeCount - 1) {
@@ -111,6 +113,20 @@ export function CreationWizard({
         });
     }, [currentModeIndex]);
 
+    // Sanitize name for Pybricks compatibility
+    const sanitizePybricksName = (name: string): string => {
+        let sanitized = name
+            .toLowerCase()
+            .replace(/\s+/g, '_')
+            .replace(/[^a-z0-9_]/g, '')
+            .replace(/^[0-9]+/, '');
+
+        if (!sanitized || /^[0-9]/.test(sanitized)) {
+            sanitized = 'bot_' + sanitized;
+        }
+        return sanitized || 'sumo_bot';
+    };
+
     // === SAVE ===
     const handleSave = useCallback(() => {
         const now = new Date().toISOString();
@@ -127,9 +143,11 @@ export function CreationWizard({
             }, {} as Record<number, { LEFT: Action; RIGHT: Action }>)
         };
 
+        const safeName = sanitizePybricksName(botName);
+
         const bot: BotProfile = {
             id: existingBot?.id || generateId(),
-            name: botName.toUpperCase().replace(/\s+/g, '_'),
+            name: safeName.toUpperCase(),
             createdAt: existingBot?.createdAt || now,
             updatedAt: now,
             robotModel,
@@ -341,6 +359,7 @@ export function CreationWizard({
                                     onChange={(design) => updateCurrentMode({ matrixDesign: design })}
                                     savedDesigns={savedDesigns}
                                     onSaveDesign={onSaveDesign}
+                                    onDeleteDesign={onDeleteDesign}
                                     compact
                                 />
                             </div>

@@ -24,7 +24,8 @@ export function BotWorkshop({ isOpen, onClose, onLoadBot }: BotWorkshopProps) {
         exportBot,
         importBot,
         savedDesigns,
-        saveDesign
+        saveDesign,
+        deleteDesign
     } = useBotLibrary();
 
     const handleNewBot = useCallback(() => {
@@ -48,6 +49,26 @@ export function BotWorkshop({ isOpen, onClose, onLoadBot }: BotWorkshopProps) {
         setEditingBot(undefined);
     }, [saveBot]);
 
+    // Sanitize name for Pybricks compatibility
+    // - No symbols (only letters, numbers, underscores)
+    // - No spaces (replace with underscore)
+    // - No numbers at the start (prefix with 'bot_')
+    // - Lowercase
+    const sanitizePybricksName = (name: string): string => {
+        let sanitized = name
+            .toLowerCase()
+            .replace(/\s+/g, '_')           // spaces -> underscores
+            .replace(/[^a-z0-9_]/g, '')     // remove non-alphanumeric except underscore
+            .replace(/^[0-9]+/, '');         // remove leading numbers
+
+        // If empty or starts with number after cleanup, prefix with 'bot_'
+        if (!sanitized || /^[0-9]/.test(sanitized)) {
+            sanitized = 'bot_' + sanitized;
+        }
+
+        return sanitized || 'bot_config';
+    };
+
     const handleExportBot = useCallback((id: string) => {
         const json = exportBot(id);
         if (json) {
@@ -56,7 +77,8 @@ export function BotWorkshop({ isOpen, onClose, onLoadBot }: BotWorkshopProps) {
             const a = document.createElement('a');
             a.href = url;
             const bot = bots.find(b => b.id === id);
-            a.download = `${bot?.name || 'bot'}.json`;
+            const safeName = sanitizePybricksName(bot?.name || 'bot');
+            a.download = `${safeName}_config.json`;
             a.click();
             URL.revokeObjectURL(url);
         }
@@ -135,6 +157,7 @@ export function BotWorkshop({ isOpen, onClose, onLoadBot }: BotWorkshopProps) {
                             savedDesigns={savedDesigns}
                             onSaveBot={handleSaveBot}
                             onSaveDesign={saveDesign}
+                            onDeleteDesign={deleteDesign}
                             onCancel={handleCancelWizard}
                         />
                     </div>

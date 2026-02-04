@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { MatrixDesign } from '../types/botTypes';
-import { createEmptyMatrixDesign, generateId } from '../types/botTypes';
+import { createEmptyMatrixDesign, generateId, DEFAULT_MATRIX_DESIGNS } from '../types/botTypes';
 import { Grid3X3, Save, Sparkles, Trash2 } from 'lucide-react';
 
 interface MatrixDesignerProps {
@@ -8,6 +8,7 @@ interface MatrixDesignerProps {
     onChange: (design: MatrixDesign) => void;
     savedDesigns?: MatrixDesign[];
     onSaveDesign?: (design: MatrixDesign) => void;
+    onDeleteDesign?: (id: string) => void;
     compact?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function MatrixDesigner({
     onChange,
     savedDesigns = [],
     onSaveDesign,
+    onDeleteDesign,
     compact = false
 }: MatrixDesignerProps) {
     const [designName, setDesignName] = useState(value.name);
@@ -94,15 +96,28 @@ export function MatrixDesigner({
                 <div className="p-3 bg-black/40 border border-cyan-500/20 rounded-lg">
                     <p className="text-xs text-gray-400 mb-2">Select a preset:</p>
                     <div className="flex flex-wrap gap-2">
-                        {savedDesigns.map((design) => (
-                            <button
-                                key={design.id}
-                                onClick={() => handleLoadDesign(design)}
-                                className="px-2 py-1 text-xs font-mono bg-gray-800/50 border border-cyan-500/30 rounded hover:bg-cyan-500/20 hover:border-cyan-400 transition-all"
-                            >
-                                {design.name}
-                            </button>
-                        ))}
+                        {savedDesigns.map((design) => {
+                            const isDefault = DEFAULT_MATRIX_DESIGNS.some(d => d.id === design.id);
+                            return (
+                                <div key={design.id} className="flex items-center gap-1">
+                                    <button
+                                        onClick={() => handleLoadDesign(design)}
+                                        className="px-2 py-1 text-xs font-mono bg-gray-800/50 border border-cyan-500/30 rounded hover:bg-cyan-500/20 hover:border-cyan-400 transition-all"
+                                    >
+                                        {design.name}
+                                    </button>
+                                    {onDeleteDesign && !isDefault && (
+                                        <button
+                                            onClick={() => onDeleteDesign(design.id)}
+                                            className="p-1 text-gray-500 hover:text-red-400 transition-colors"
+                                            title="Delete design"
+                                        >
+                                            <Trash2 className="w-3 h-3" />
+                                        </button>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}

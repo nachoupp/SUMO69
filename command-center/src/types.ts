@@ -51,8 +51,8 @@ export const DEFAULT_CONFIG: SumoConfig = {
     VELOCIDAD_GOLPE: 1000,
     GOLPE_MANUAL_REPETICIONES: 1,
 
-    EMBRAGUE_PALA_ACTIVO: true,
-    LIFT_HIGH_POS: 320,
+    EMBRAGUE_PALA_ACTIVO: false,  // Only relevant for BLUE model
+    LIFT_HIGH_POS: 0,              // Only relevant for BLUE model
 
     DISTANCIA_ATAQUE: 300,
     VELOCIDAD_GIRO_BUSQUEDA: 200,
