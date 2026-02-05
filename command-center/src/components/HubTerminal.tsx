@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from 'react';
 import { Send, Terminal, ArrowUp, ArrowDown, Power } from 'lucide-react';
 
 interface HubTerminalProps {
