@@ -12,11 +12,12 @@ import { Terminal, Cpu, Zap, Shield, Settings, Bluetooth, BluetoothOff, AlertTri
 
 import { ScriptUploader } from './components/ScriptUploader';
 import { HubTerminal } from './components/HubTerminal';
+import { AITacticalAssistant } from './components/AITacticalAssistant';
 
 function App() {
   const [config, setConfig] = useState<SumoConfig>(DEFAULT_CONFIG);
   const [activeMode, setActiveMode] = useState(0);
-  const [highlightedPort] = useState<string | null>(null);
+  const [highlightedPort, setHighlightedPort] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const { isConnected, isConnecting, connect, disconnect, deviceName, error, output, sendCommand, clearOutput } = usePybricksBle();
 
@@ -257,6 +258,12 @@ function App() {
 
         {/* ⚙️ Right Column: AI Assistant & Code Export */}
         <aside className="w-[450px] border-l border-neon-green/10 bg-slate-950/50 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+
+          <AITacticalAssistant
+            config={config}
+            onChange={setConfig}
+            onHighlightPort={setHighlightedPort}
+          />
 
           <HubTerminal
             isConnected={isConnected}
