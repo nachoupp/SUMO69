@@ -141,6 +141,8 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
     // Generate script on the fly so it's always visible
     const script = React.useMemo(() => generateFullScript(config), [config]);
 
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
+
     const handleUpload = async () => {
         if (!isConnected) return;
         setUploading(true);
@@ -157,6 +159,32 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
         } finally {
             setUploading(false);
         }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !isConnected) return;
+
+        setUploading(true);
+        setValidationErrors([]);
+        clearOutput();
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const content = e.target?.result as string;
+            try {
+                const result = await uploadScript(content);
+                if (!result.success && result.errors) {
+                    setValidationErrors(result.errors);
+                }
+            } catch (err) {
+                console.error("Manual upload failed:", err);
+            } finally {
+                setUploading(false);
+                if (fileInputRef.current) fileInputRef.current.value = ''; // Reset input
+            }
+        };
+        reader.readAsText(file);
     };
 
     const handleStop = async () => {
@@ -181,15 +209,34 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
 
     return (
         <div className="flex flex-col gap-2 p-2 border-t border-white/10">
+            <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept=".py"
+                className="hidden"
+            />
             <div className="flex gap-2">
                 <button
                     onClick={handleUpload}
                     disabled={!isConnected || uploading}
+                    title="Upload Generated Script"
                     className={`flex items-center gap-1 px-3 py-1 rounded text-sm font-bold transition-colors ${uploading ? 'bg-neon-orange/20 border-neon-orange/50 text-neon-orange' : 'bg-neon-green/20 border-neon-green/50 text-neon-green hover:bg-neon-green/30'}`}
                 >
                     <Upload className="w-4 h-4" />
-                    {uploading ? 'UPLOADING...' : 'UPLOAD & EXECUTE'}
+                    {uploading ? 'UPLOADING...' : 'AUTO_UPLOAD'}
                 </button>
+
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={!isConnected || uploading}
+                    title="Upload Local File"
+                    className={`flex items-center gap-1 px-3 py-1 rounded text-sm font-bold border transition-all ${uploading ? 'opacity-50 cursor-not-allowed' : 'bg-neon-blue/10 border-neon-blue/30 text-neon-blue hover:bg-neon-blue/20'}`}
+                >
+                    <Upload className="w-4 h-4" />
+                    MANUAL_UPLOAD
+                </button>
+
                 <button
                     onClick={handleStop}
                     disabled={!isConnected}
@@ -198,6 +245,7 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
                     <StopCircle className="w-4 h-4" />
                     🛑 STOP
                 </button>
+
                 <button
                     onClick={handleDownload}
                     className="flex items-center gap-1 px-3 py-1 rounded text-sm font-bold bg-neon-blue/10 border-neon-blue/30 text-neon-blue hover:bg-neon-blue/20 ml-auto"
