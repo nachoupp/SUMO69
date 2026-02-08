@@ -171,14 +171,45 @@ export function usePybricksBle() {
     // Helper delay
     const delay = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
-    // Validates script content rules
-    const validateScript = (script: string): void => {
+    // Validates script content rules (CRITICAL for Pybricks firmware)
+    const validateScript = (script: string): { valid: boolean; errors: string[] } => {
+        const errors: string[] = [];
+
+        // Rule 1: Block official firmware imports
         if (script.includes("import hub")) {
-            throw new Error("Validation Error: 'import hub' is banned. Use 'from pybricks.hubs import ...'");
+            errors.push("'import hub' is from official firmware. Use 'from pybricks.hubs import ...' instead.");
         }
-        if (!script.includes("from pybricks")) {
-            throw new Error("Validation Error: Script must start with Pybricks imports.");
+
+        // Rule 2: Must have Pybricks header
+        const firstLines = script.split('\n').slice(0, 10).join('\n');
+        if (!firstLines.includes("from pybricks")) {
+            errors.push("Script must begin with Pybricks imports (e.g., 'from pybricks.hubs import InventorHub').");
         }
+
+        // Rule 3: Check for common mistakes
+        if (script.includes("\t")) {
+            errors.push("Script contains tabs. Pybricks prefers 4-space indentation.");
+        }
+
+        return { valid: errors.length === 0, errors };
+    };
+
+    // Validates filename rules for Pybricks compatibility
+    const validateFilename = (name: string): { valid: boolean; error?: string } => {
+        // Must end with .py
+        if (!name.endsWith('.py')) {
+            return { valid: false, error: "Filename must end with .py extension." };
+        }
+
+        const baseName = name.slice(0, -3); // Remove .py
+
+        // Only lowercase letters, numbers, underscores
+        const validPattern = /^[a-z0-9_]+$/;
+        if (!validPattern.test(baseName)) {
+            return { valid: false, error: "Filename can only contain lowercase letters, numbers, and underscores. No spaces, dashes, or special characters." };
+        }
+
+        return { valid: true };
     };
 
     // Write raw bytes directly to RX
@@ -194,48 +225,82 @@ export function usePybricksBle() {
         }
     }, []);
 
+    // Emergency STOP - sends only Ctrl+C to immediately interrupt
+    const sendStop = useCallback(async () => {
+        if (!rxCharRef.current) {
+            console.warn("Cannot send STOP - not connected");
+            return;
+        }
+        try {
+            console.log("🛑 EMERGENCY STOP: Sending Ctrl+C...");
+            await writeRaw(new Uint8Array([0x03]));
+            setState(prev => ({
+                ...prev,
+                output: prev.output + "\n>>> STOP signal sent\n"
+            }));
+        } catch (err) {
+            console.error("STOP command failed:", err);
+        }
+    }, [writeRaw]);
+
     // Full Upload Protocol: Ctrl+C -> Ctrl+E -> Chunks -> Ctrl+D
-    const uploadScript = useCallback(async (script: string) => {
-        if (!rxCharRef.current) throw new Error("Not connected");
+    // Uses strict Pybricks NUS protocol with proper timing
+    const uploadScript = useCallback(async (script: string): Promise<{ success: boolean; errors?: string[] }> => {
+        if (!rxCharRef.current) {
+            return { success: false, errors: ["Not connected to Hub"] };
+        }
 
         try {
-            // 1. Validate
-            console.log("Validating script...");
-            validateScript(script);
+            // 1. Validate script content
+            console.log("📋 Step 1: Validating script...");
+            const validation = validateScript(script);
+            if (!validation.valid) {
+                console.error("Validation failed:", validation.errors);
+                setState(prev => ({
+                    ...prev,
+                    error: validation.errors.join(" | ")
+                }));
+                return { success: false, errors: validation.errors };
+            }
 
             const encoder = new TextEncoder();
             const bytes = encoder.encode(script);
 
-            // 2. Interrupt (Ctrl+C) - 0x03
-            console.log("Protocol: Sending Ctrl+C...");
+            // 2. Interrupt any running code (Ctrl+C) - 0x03
+            console.log("🛑 Step 2: Sending Ctrl+C (Stop)...");
             await writeRaw(new Uint8Array([0x03]));
             await delay(100);
 
-            // 3. Paste Mode (Ctrl+E) - 0x05
-            console.log("Protocol: Sending Ctrl+E (Paste Mode)...");
+            // 3. Enter Paste Mode (Ctrl+E) - 0x05
+            // CRITICAL: This disables auto-indent that corrupts Python whitespace
+            console.log("📝 Step 3: Sending Ctrl+E (Paste Mode)...");
             await writeRaw(new Uint8Array([0x05]));
-            await delay(200); // Wait for Hub to be ready
+            await delay(200); // Wait for Hub to enter paste mode
 
-            // 4. Chunked Transfer (20 bytes max)
-            console.log(`Protocol: Uploading ${bytes.length} bytes...`);
+            // 4. Chunked Transfer (20 bytes max per BLE MTU)
+            console.log(`📤 Step 4: Uploading ${bytes.length} bytes in ${Math.ceil(bytes.length / 20)} chunks...`);
             for (let i = 0; i < bytes.length; i += 20) {
                 const chunk = bytes.slice(i, i + 20);
                 await writeRaw(chunk);
-                // 20ms delay to prevent buffer overflow (Pybricks recommends 10-100ms depending on device)
-                await delay(20);
+                // 18ms delay (sweet spot in 15-20ms range) to prevent buffer overflow
+                await delay(18);
             }
 
-            // 5. Execute (Ctrl+D) - 0x04
-            console.log("Protocol: Sending Ctrl+D (Reset & Run)...");
+            // 5. Execute (Ctrl+D) - 0x04 triggers Soft Reboot
+            console.log("🚀 Step 5: Sending Ctrl+D (Execute)...");
             await writeRaw(new Uint8Array([0x04]));
 
+            console.log("✅ Upload complete!");
+            return { success: true };
+
         } catch (err) {
-            console.error("Upload Protocol Failed:", err);
+            console.error("❌ Upload Protocol Failed:", err);
+            const errorMsg = err instanceof Error ? err.message : "Upload failed";
             setState(prev => ({
                 ...prev,
-                error: err instanceof Error ? err.message : "Upload failed"
+                error: errorMsg
             }));
-            throw err;
+            return { success: false, errors: [errorMsg] };
         }
     }, [writeRaw]);
 
@@ -246,6 +311,9 @@ export function usePybricksBle() {
         sendCommand,
         writeRaw,
         uploadScript,
+        sendStop,
+        validateScript,
+        validateFilename,
         clearOutput
     };
 }

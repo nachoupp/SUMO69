@@ -7,8 +7,23 @@ import { BotWorkshop } from './components/BotWorkshop';
 import type { SumoConfig, RobotModel } from './types';
 import { DEFAULT_CONFIG } from './types';
 import { usePybricksBle } from './hooks/usePybricksBle';
-import { Terminal, Cpu, Zap, Shield, Settings, Bluetooth, BluetoothOff, AlertTriangle, Command, Eye, Wrench } from 'lucide-react';
+import { Terminal, Cpu, Zap, Settings, Bluetooth, BluetoothOff, AlertTriangle, Command, Eye, Wrench } from 'lucide-react';
 
+import ReactGridLayout from 'react-grid-layout';
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+
+const Grid = ReactGridLayout as any;
+
+const initialLayout = [
+  { i: 'params', x: 0, y: 0, w: 3, h: 8 },
+  { i: 'buttons', x: 3, y: 0, w: 3, h: 6 },
+  { i: 'hub', x: 6, y: 0, w: 6, h: 6 },
+  { i: 'tactical', x: 3, y: 6, w: 9, h: 2 },
+  { i: 'ai', x: 0, y: 8, w: 6, h: 6 },
+  { i: 'terminal', x: 6, y: 8, w: 3, h: 6 },
+  { i: 'script', x: 9, y: 8, w: 3, h: 6 },
+];
 
 import { ScriptUploader } from './components/ScriptUploader';
 import { HubTerminal } from './components/HubTerminal';
@@ -119,109 +134,120 @@ function App() {
         </div>
       </header>
 
-      {/* 🛠️ Main Content Grid */}
-      <main className="flex-1 min-h-0 flex">
+      {/* 🛠️ Main Content Grid - Draggable Layout */}
+      <main className="flex-1 min-h-0 overflow-auto custom-scrollbar bg-dark" style={{
+        background: config.ROBOT_MODEL === 'YELLOW'
+          ? 'radial-gradient(circle at center, #1e1b0b 0%, #030712 100%)'
+          : 'radial-gradient(circle at center, #0b172a 0%, #030712 100%)'
+      }}>
+        {/* Decorative Grid Overlay */}
+        <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: `radial-gradient(${config.ROBOT_MODEL === 'YELLOW' ? '#f59e0b' : '#0ea5e9'} 1px, transparent 1px)`, backgroundSize: '32px 32px' }} />
 
-        {/* 🎛️ Left Column: Parameters & Mapping */}
-        <aside className="w-80 border-r border-white/10 bg-black/20 overflow-y-auto custom-scrollbar flex flex-col gap-4">
-          <div className="p-4 flex flex-col gap-6">
-            <section className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-white/10 pb-1">
-                <Settings className="w-4 h-4 text-neon-green" />
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">TACTICAL_PARAMS</h2>
-              </div>
-              <ParameterEditor config={config} onChange={setConfig} />
-            </section>
-
-            <section className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-white/10 pb-1">
-                <Command className="w-4 h-4 text-neon-magenta" />
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase">BUTTON_MAPS</h2>
-              </div>
-
-              {/* Mode Tabs */}
-              <div className="flex gap-1 bg-black/40 p-1 rounded-lg border border-white/5">
-                {[0, 1, 2, 3].map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setActiveMode(m)}
-                    className={`flex-1 py-1 text-[9px] font-bold rounded transition-all ${activeMode === m
-                      ? `shadow-inner ${m === 0 ? 'bg-neon-green/20 text-neon-green' :
-                        m === 1 ? 'bg-neon-orange/20 text-neon-orange' :
-                          m === 2 ? 'bg-neon-magenta/20 text-neon-magenta' :
-                            'bg-neon-blue/20 text-neon-blue'
-                      }`
-                      : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                  >
-                    M{m}
-                  </button>
-                ))}
-              </div>
-
-              <ButtonMapper config={config} activeMode={activeMode} onChange={setConfig} />
-            </section>
+        <div className="p-2">
+          <div className="mb-2 text-center">
+            <span className="text-[10px] text-neon-green font-bold uppercase tracking-widest bg-neon-green/10 px-3 py-1 rounded border border-neon-green/30">
+              🖱️ MODO EDICIÓN: Arrastra y redimensiona los paneles
+            </span>
           </div>
-        </aside>
 
-        {/* 🤖 Center Column: Visualization */}
-        <section
-          className="flex-1 flex flex-col transition-colors duration-1000 relative overflow-y-auto custom-scrollbar"
-          style={{
-            background: config.ROBOT_MODEL === 'YELLOW'
-              ? 'radial-gradient(circle at center, #1e1b0b 0%, #030712 100%)'
-              : 'radial-gradient(circle at center, #0b172a 0%, #030712 100%)'
-          }}
-        >
-          {/* Decorative Grid Overlay */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: `radial-gradient(${config.ROBOT_MODEL === 'YELLOW' ? '#f59e0b' : '#0ea5e9'} 1px, transparent 1px)`, backgroundSize: '32px 32px' }} />
-
-          <div className="flex flex-col items-center justify-start gap-4 py-6 px-8 z-10">
-            <div className="flex flex-col xl:flex-row gap-6 items-center">
-              <div className="flex flex-col items-center gap-2 scale-75">
-                <span className={`text-[10px] font-bold tracking-[0.3em] uppercase opacity-50 ${config.ROBOT_MODEL === 'YELLOW' ? 'text-neon-orange' : 'text-neon-blue'}`}>
-                  Hub Core v2.5 :: {config.ROBOT_MODEL}
-                </span>
-                <HubVisualizer
-                  number={config.MARCHAS_CAJA[0]}
-                  mode={activeMode}
-                  doubleVision={true}
-                  ghostMode={config.MODO_FANTASMA}
-                  showIcon={true}
-                  robotModel={config.ROBOT_MODEL}
-                  highlightedPort={highlightedPort}
-                />
+          <Grid
+            className="layout"
+            layout={initialLayout}
+            cols={12}
+            rowHeight={60}
+            width={1600}
+            draggableHandle=".drag-handle"
+            onLayoutChange={(newLayout: any) => {
+              console.log('📐 Layout changed:', newLayout);
+            }}
+          >
+            {/* 🎛️ Parameters Panel */}
+            <div key="params" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-neon-green/10 transition-colors">
+                <Settings className="w-4 h-4 text-neon-green" />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">TACTICAL_PARAMS</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
               </div>
-
-              <div className="flex flex-col items-center gap-2 scale-75">
-                <span className="text-[10px] font-bold text-slate-500 tracking-[0.3em] uppercase opacity-50">Engineer_Mode_Access</span>
-                <EngineerModeVisualizer />
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-3">
+                <ParameterEditor config={config} onChange={setConfig} />
               </div>
             </div>
 
-            {/* Tactical Hud Info */}
-            <div className={`grid grid-cols-4 gap-4 w-full max-w-2xl px-4 py-3 cyber-box transition-colors duration-500 bg-black/60 ${config.ROBOT_MODEL === 'YELLOW' ? 'border-neon-orange/20' : 'border-neon-blue/20'
-              }`}>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Detection_Range</span>
-                <div className="flex items-center gap-2">
-                  <Eye className={`w-3 h-3 ${config.ROBOT_MODEL === 'YELLOW' ? 'text-neon-orange' : 'text-neon-blue'}`} />
+            {/* 🎮 Button Maps Panel */}
+            <div key="buttons" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-neon-magenta/10 transition-colors">
+                <Command className="w-4 h-4 text-neon-magenta" />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">BUTTON_MAPS</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="p-2">
+                <div className="flex gap-1 bg-black/40 p-1 rounded-lg border border-white/5 mb-2">
+                  {[0, 1, 2, 3].map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setActiveMode(m)}
+                      className={`flex-1 py-1 text-[9px] font-bold rounded transition-all ${activeMode === m
+                        ? `shadow-inner ${m === 0 ? 'bg-neon-green/20 text-neon-green' :
+                          m === 1 ? 'bg-neon-orange/20 text-neon-orange' :
+                            m === 2 ? 'bg-neon-magenta/20 text-neon-magenta' :
+                              'bg-neon-blue/20 text-neon-blue'
+                        }`
+                        : 'text-slate-500 hover:text-slate-300'
+                        }`}
+                    >
+                      M{m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-3">
+                <ButtonMapper config={config} activeMode={activeMode} onChange={setConfig} />
+              </div>
+            </div>
+
+            {/* 🤖 Hub Visualizer Panel */}
+            <div key="hub" className="bg-black/40 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-neon-blue/10 transition-colors">
+                <Cpu className={`w-4 h-4 ${config.ROBOT_MODEL === 'YELLOW' ? 'text-neon-orange' : 'text-neon-blue'}`} />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">HUB_CORE v2.5 :: {config.ROBOT_MODEL}</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="flex-1 flex items-center justify-center gap-4 p-2 overflow-auto">
+                <div className="flex flex-col items-center gap-2 scale-[0.6]">
+                  <HubVisualizer
+                    number={config.MARCHAS_CAJA[0]}
+                    mode={activeMode}
+                    doubleVision={true}
+                    ghostMode={config.MODO_FANTASMA}
+                    showIcon={true}
+                    robotModel={config.ROBOT_MODEL}
+                    highlightedPort={highlightedPort}
+                  />
+                </div>
+                <div className="flex flex-col items-center gap-2 scale-[0.6]">
+                  <EngineerModeVisualizer />
+                </div>
+              </div>
+            </div>
+
+            {/* 📊 Tactical HUD Panel */}
+            <div key="tactical" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-neon-orange/10 transition-colors">
+                <Eye className={`w-4 h-4 ${config.ROBOT_MODEL === 'YELLOW' ? 'text-neon-orange' : 'text-neon-blue'}`} />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">TACTICAL_HUD</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="flex-1 grid grid-cols-4 gap-2 p-3">
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Detection</span>
                   <span className="text-sm font-bold text-slate-200">{config.DISTANCIA_ATAQUE}mm</span>
                 </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">System_State</span>
-                <div className="flex items-center gap-2">
-                  <Shield className="w-3 h-3 text-neon-magenta" />
-                  <span className="text-sm font-bold text-slate-200 uppercase tracking-tighter">
-                    {activeMode === 0 ? 'Drive' : activeMode === 1 ? 'Action' : activeMode === 2 ? 'Auto' : 'Mental'}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">State</span>
+                  <span className="text-sm font-bold text-slate-200">{activeMode === 0 ? 'Drive' : activeMode === 1 ? 'Action' : activeMode === 2 ? 'Auto' : 'Mental'}</span>
                 </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Hacker_Channel</span>
-                <div className="flex items-center gap-2">
-                  <Bluetooth className="w-3 h-3 text-neon-blue" />
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Channel</span>
                   <input
                     type="number"
                     min="0"
@@ -231,52 +257,70 @@ function App() {
                     className="w-12 bg-transparent text-sm font-bold text-slate-200 border-b border-neon-blue/50 focus:border-neon-blue outline-none"
                   />
                 </div>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">Hardware_ID</span>
-                <div className="flex items-center gap-2">
-                  <Terminal className={`w-3 h-3 ${config.ROBOT_MODEL === 'YELLOW' ? 'text-neon-orange' : 'text-neon-blue'}`} />
-                  <span className="text-sm font-bold text-slate-200 uppercase">
-                    {config.ROBOT_MODEL === 'YELLOW' ? 'S69_MARTILLO' : 'ML_PALA_ACT'}
-                  </span>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[9px] text-slate-500 font-bold uppercase tracking-wider">HW_ID</span>
+                  <span className="text-sm font-bold text-slate-200">{config.ROBOT_MODEL === 'YELLOW' ? 'MARTILLO' : 'PALA'}</span>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Error Banner */}
-          {error && (
-            <div className="absolute bottom-4 left-4 right-4 bg-red-950/80 border border-red-500/50 p-3 rounded flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2">
-              <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
-              <div className="flex flex-col">
-                <span className="text-xs font-bold text-red-500 uppercase tracking-widest">Protocol Error</span>
-                <span className="text-[10px] text-red-200/70 font-mono">{error}</span>
+            {/* 🤖 AI Assistant Panel */}
+            <div key="ai" className="bg-black/60 border border-neon-green/20 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-neon-green/20 p-2 cursor-move bg-black/40 hover:bg-neon-green/10 transition-colors">
+                <Zap className="w-4 h-4 text-neon-green" />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">AI_ASSISTANT</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                <AITacticalAssistant
+                  config={config}
+                  onChange={setConfig}
+                  onHighlightPort={setHighlightedPort}
+                />
               </div>
             </div>
-          )}
-        </section>
 
-        {/* ⚙️ Right Column: AI Assistant & Code Export */}
-        <aside className="w-[450px] border-l border-neon-green/10 bg-slate-950/50 p-4 overflow-y-auto custom-scrollbar flex flex-col gap-4">
+            {/* 📟 Terminal Panel */}
+            <div key="terminal" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-slate-700/20 transition-colors">
+                <Terminal className="w-4 h-4 text-slate-400" />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">HUB_TERMINAL</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="flex-1 overflow-hidden p-2">
+                <HubTerminal
+                  isConnected={isConnected}
+                  output={output}
+                  sendCommand={sendCommand}
+                  clearOutput={clearOutput}
+                />
+              </div>
+            </div>
 
-          <AITacticalAssistant
-            config={config}
-            onChange={setConfig}
-            onHighlightPort={setHighlightedPort}
-          />
+            {/* 📤 Script Uploader Panel */}
+            <div key="script" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
+              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-neon-blue/10 transition-colors">
+                <Bluetooth className="w-4 h-4 text-neon-blue" />
+                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">SCRIPT_UPLOAD</h2>
+                <span className="text-[8px] text-slate-600">⋮⋮</span>
+              </div>
+              <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
+                <ScriptUploader config={config} />
+              </div>
+            </div>
+          </Grid>
+        </div>
 
-          <HubTerminal
-            isConnected={isConnected}
-            output={output}
-            sendCommand={sendCommand}
-            clearOutput={clearOutput}
-          />
-
-          <div className="h-px bg-white/5" />
-
-          <ScriptUploader config={config} />
-        </aside>
-
+        {/* Error Banner */}
+        {error && (
+          <div className="fixed bottom-20 left-4 right-4 bg-red-950/80 border border-red-500/50 p-3 rounded flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 z-50">
+            <AlertTriangle className="w-5 h-5 text-red-500 shrink-0" />
+            <div className="flex flex-col">
+              <span className="text-xs font-bold text-red-500 uppercase tracking-widest">Protocol Error</span>
+              <span className="text-[10px] text-red-200/70 font-mono">{error}</span>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* 📟 Footer Status Bar */}

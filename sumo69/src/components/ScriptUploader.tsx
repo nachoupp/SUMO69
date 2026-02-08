@@ -133,9 +133,10 @@ while True:
 }
 
 export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => {
-    const { isConnected, uploadScript, writeRaw, output, clearOutput } = usePybricksBle();
+    const { isConnected, uploadScript, sendStop, validateScript, output, clearOutput } = usePybricksBle();
     const [uploading, setUploading] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
     // Generate script on the fly so it's always visible
     const script = React.useMemo(() => generateFullScript(config), [config]);
@@ -143,10 +144,14 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
     const handleUpload = async () => {
         if (!isConnected) return;
         setUploading(true);
+        setValidationErrors([]);
         clearOutput();
 
         try {
-            await uploadScript(script);
+            const result = await uploadScript(script);
+            if (!result.success && result.errors) {
+                setValidationErrors(result.errors);
+            }
         } catch (e) {
             console.error("Upload failed:", e);
         } finally {
@@ -156,7 +161,7 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
 
     const handleStop = async () => {
         if (!isConnected) return;
-        await writeRaw(new Uint8Array([0x03])); // Ctrl+C
+        await sendStop();
     };
 
     const handleDownload = () => {
@@ -188,10 +193,10 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
                 <button
                     onClick={handleStop}
                     disabled={!isConnected}
-                    className="flex items-center gap-1 px-3 py-1 rounded text-sm font-bold bg-red-600/10 border-red-600/30 text-red-600 hover:bg-red-600/20"
+                    className="flex items-center gap-1 px-4 py-1.5 rounded text-sm font-bold bg-red-600/20 border border-red-600/50 text-red-500 hover:bg-red-600/30 hover:scale-105 transition-all shadow-[0_0_10px_rgba(255,0,0,0.2)]"
                 >
                     <StopCircle className="w-4 h-4" />
-                    STOP
+                    🛑 STOP
                 </button>
                 <button
                     onClick={handleDownload}
@@ -201,6 +206,32 @@ export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => 
                     main.py
                 </button>
             </div>
+
+            {/* Validation errors display */}
+            {validationErrors.length > 0 && (
+                <div className="mt-2 p-2 bg-red-900/30 border border-red-500/50 rounded">
+                    <span className="text-xs font-bold text-red-400 uppercase tracking-wider">⚠️ Validation Errors</span>
+                    <ul className="mt-1 text-xs text-red-300 list-disc list-inside">
+                        {validationErrors.map((err, i) => (
+                            <li key={i}>{err}</li>
+                        ))}
+                    </ul>
+                </div>
+            )}
+
+            {/* Real-time validation status */}
+            {(() => {
+                const validation = validateScript(script);
+                return validation.valid ? (
+                    <div className="mt-2 text-xs text-neon-green flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Script valid - ready to upload
+                    </div>
+                ) : (
+                    <div className="mt-2 text-xs text-yellow-500 flex items-center gap-1">
+                        ⚠️ {validation.errors.length} issue(s) detected
+                    </div>
+                );
+            })()}
 
             {/* Script preview */}
             {script && (
