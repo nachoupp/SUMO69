@@ -269,21 +269,20 @@ export function usePybricksBle() {
             // 2. Interrupt any running code (Ctrl+C) - 0x03
             console.log("🛑 Step 2: Sending Ctrl+C (Stop)...");
             await writeRaw(new Uint8Array([0x03]));
-            await delay(100);
+            await delay(300);
 
             // 3. Enter Paste Mode (Ctrl+E) - 0x05
             // CRITICAL: This disables auto-indent that corrupts Python whitespace
             console.log("📝 Step 3: Sending Ctrl+E (Paste Mode)...");
             await writeRaw(new Uint8Array([0x05]));
-            await delay(200); // Wait for Hub to enter paste mode
+            await delay(500); // Wait for Hub to enter paste mode
 
             // 4. Chunked Transfer (20 bytes max per BLE MTU)
             console.log(`📤 Step 4: Uploading ${bytes.length} bytes in ${Math.ceil(bytes.length / 20)} chunks...`);
             for (let i = 0; i < bytes.length; i += 20) {
                 const chunk = bytes.slice(i, i + 20);
                 await writeRaw(chunk);
-                // 18ms delay (sweet spot in 15-20ms range) to prevent buffer overflow
-                await delay(18);
+      // 50ms delay - increased from 18ms for better reliability with long scripts                await delay(50);
             }
 
             // 5. Execute (Ctrl+D) - 0x04 triggers Soft Reboot
