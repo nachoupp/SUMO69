@@ -26,8 +26,6 @@ const initialLayout = [
 ];
 
 import { ScriptUploader } from './components/ScriptUploader';
-import { HubTerminal } from './components/HubTerminal';
-import { AITacticalAssistant } from './components/AITacticalAssistant';
 
 function App() {
   const [config, setConfig] = useState<SumoConfig>(DEFAULT_CONFIG);
