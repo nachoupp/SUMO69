@@ -19,9 +19,6 @@ const initialLayout = [
   { i: 'params', x: 0, y: 0, w: 3, h: 8 },
   { i: 'buttons', x: 3, y: 0, w: 3, h: 6 },
   { i: 'hub', x: 6, y: 0, w: 6, h: 6 },
-  { i: 'tactical', x: 3, y: 6, w: 9, h: 2 },
-  { i: 'ai', x: 0, y: 8, w: 6, h: 6 },
-  { i: 'terminal', x: 6, y: 8, w: 3, h: 6 },
   { i: 'script', x: 9, y: 8, w: 3, h: 6 },
 ];
 
