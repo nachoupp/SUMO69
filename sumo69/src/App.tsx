@@ -27,9 +27,9 @@ import { ScriptUploader } from './components/ScriptUploader';
 function App() {
   const [config, setConfig] = useState<SumoConfig>(DEFAULT_CONFIG);
   const [activeMode, setActiveMode] = useState(0);
-  const [highlightedPort, setHighlightedPort] = useState<string | null>(null);
+  const [highlightedPort] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const { isConnected, isConnecting, connect, disconnect, deviceName, error, output, sendCommand, clearOutput } = usePybricksBle();
+  const { isConnected, isConnecting, connect, disconnect, deviceName, error } = usePybricksBle();
 
   const status = isConnecting
     ? { label: 'SYNCHRONIZING...', color: 'text-neon-orange animate-pulse' }
