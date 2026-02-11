@@ -259,38 +259,8 @@ function App() {
               </div>
             </div>
 
-            {/* 🤖 AI Assistant Panel */}
-            <div key="ai" className="bg-black/60 border border-neon-green/20 rounded-lg overflow-hidden flex flex-col">
-              <div className="drag-handle flex items-center gap-2 border-b border-neon-green/20 p-2 cursor-move bg-black/40 hover:bg-neon-green/10 transition-colors">
-                <Zap className="w-4 h-4 text-neon-green" />
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">AI_ASSISTANT</h2>
-                <span className="text-[8px] text-slate-600">⋮⋮</span>
-              </div>
-              <div className="flex-1 overflow-y-auto custom-scrollbar p-2">
-                <AITacticalAssistant
-                  config={config}
-                  onChange={setConfig}
-                  onHighlightPort={setHighlightedPort}
-                />
-              </div>
-            </div>
-
-            {/* 📟 Terminal Panel */}
-            <div key="terminal" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
-              <div className="drag-handle flex items-center gap-2 border-b border-white/10 p-2 cursor-move bg-black/40 hover:bg-slate-700/20 transition-colors">
-                <Terminal className="w-4 h-4 text-slate-400" />
-                <h2 className="text-xs font-bold tracking-widest text-slate-400 uppercase flex-1">HUB_TERMINAL</h2>
-                <span className="text-[8px] text-slate-600">⋮⋮</span>
-              </div>
-              <div className="flex-1 overflow-hidden p-2">
-                <HubTerminal
-                  isConnected={isConnected}
-                  output={output}
-                  sendCommand={sendCommand}
-                  clearOutput={clearOutput}
-                />
-              </div>
-            </div>
+            
+            
 
             {/* 📤 Script Uploader Panel */}
             <div key="script" className="bg-black/60 border border-white/10 rounded-lg overflow-hidden flex flex-col">
