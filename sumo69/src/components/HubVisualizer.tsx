@@ -1,4 +1,5 @@
-import React, { useMemo } from 'react';
+w-[260px]100
+    import React, { useMemo } from 'react';
 import type { RobotModel } from '../types';
 
 interface HubVisualizerProps {
@@ -97,7 +98,7 @@ export const HubVisualizer: React.FC<HubVisualizerProps> = ({
     };
 
     return (
-        <div className="relative w-[340px] h-96 bg-slate-900 rounded-[3rem] border-8 border-slate-800 p-6 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.5)] holographic overflow-hidden group gap-4">
+        <div className="relative w-[260px] h-96 bg-slate-900 rounded-[3rem] border-8 border-slate-800 p-6 flex items-center justify-between shadow-[0_0_40px_rgba(0,0,0,0.5)] holographic overflow-hidden group gap-4">
 
             {/* Left Column: A, C, E */}
             <div className="flex flex-col justify-between h-full py-2 z-10">
