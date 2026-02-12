@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { usePybricksBle } from '../hooks/usePybricksBle';
-import { Upload, StopCircle, Copy, Check, Download } from 'lucide-react';
+// Removed: import { usePybricksBle } from '../hooks/usePybricksBle'; // Now received as propsimport { Upload, StopCircle, Copy, Check, Download } from 'lucide-react';
 import type { SumoConfig } from '../types';
 
 /**
@@ -133,11 +132,17 @@ while True:
 }
 
 export const ScriptUploader: React.FC<{ config: SumoConfig }> = ({ config }) => {
-    const { isConnected, uploadScript, sendStop, validateScript, output, clearOutput } = usePybricksBle();
     const [uploading, setUploading] = useState(false);
     const [copied, setCopied] = useState(false);
-    const [validationErrors, setValidationErrors] = useState<string[]>([]);
-
+export const ScriptUploader: React.FC<{
+  config: SumoConfig;
+  isConnected: boolean;
+  uploadScript: (script: string) => Promise<{ success: boolean; errors?: string[] }>;
+  sendStop: () => Promise<void>;
+  validateScript: (script: string) => { valid: boolean; errors: string[] };
+  output: string;
+  clearOutput: () => void;
+}> = ({ config, isConnected, uploadScript, sendStop, validateScript, output, clearOutput }) => {
     // Generate script on the fly so it's always visible
     const script = React.useMemo(() => generateFullScript(config), [config]);
 
