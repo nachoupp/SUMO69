@@ -213,15 +213,22 @@ export function usePybricksBle() {
     };
 
     // Write raw bytes directly to RX
-    const writeRaw = useCallback(async (bytes: Uint8Array) => {
+    // Write raw bytes with backpressure handling and retry logic
+    const writeRaw = useCallback(async (bytes: Uint8Array, maxRetries: number = 3) => {
         if (!rxCharRef.current) return;
-        try {
-            // Create a new Uint8Array with its own ArrayBuffer to satisfy TypeScript
-            const buffer = new Uint8Array(bytes).buffer;
-            await rxCharRef.current.writeValue(buffer);
-        } catch (err) {
-            console.error("Write Raw Error:", err);
-            throw err; // Propagate error for uploadScript handling
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const buffer = new Uint8Array(bytes).buffer;
+                // Use writeValueWithResponse to wait for ACK from hub
+                await rxCharRef.current.writeValueWithResponse(buffer);
+                return; // Success
+            } catch (err) {
+                console.error(`Write attempt ${attempt}/${maxRetries} failed:`, err);
+                if (attempt === maxRetries) throw err;
+                // Exponential backoff: 100ms, 200ms, 400ms
+                await delay(100 * Math.pow(2, attempt - 1));
+            }
         }
     }, []);
 
@@ -269,22 +276,27 @@ export function usePybricksBle() {
             // 2. Interrupt any running code (Ctrl+C) - 0x03
             console.log("🛑 Step 2: Sending Ctrl+C (Stop)...");
             await writeRaw(new Uint8Array([0x03]));
-            await delay(300);
-
+            await delay(500); // Increased delay to ensure REPL is ready
             // 3. Enter Paste Mode (Ctrl+E) - 0x05
             // CRITICAL: This disables auto-indent that corrupts Python whitespace
             console.log("📝 Step 3: Sending Ctrl+E (Paste Mode)...");
             await writeRaw(new Uint8Array([0x05]));
-            await delay(500); // Wait for Hub to enter paste mode
-
+            await delay(800); // Wait for paste mode confirmation
             // 4. Chunked Transfer (20 bytes max per BLE MTU)
             console.log(`📤 Step 4: Uploading ${bytes.length} bytes in ${Math.ceil(bytes.length / 20)} chunks...`);
-            for (let i = 0; i < bytes.length; i += 20) {
+                        for (let i = 0; i < bytes.length; i += 20) {
                 const chunk = bytes.slice(i, i + 20);
                 await writeRaw(chunk);
-      // 50ms delay - increased from 18ms for better reliability with long scripts                await delay(50);
+                
+                // Adaptive delay: longer for large uploads
+                const baseDelay = bytes.length > 2000 ? 80 : 60;
+                await delay(baseDelay);
+                
+                // Progress tracking every 10 chunks
+                if (i % 200 === 0) {
+                    console.log(`  Progress: ${Math.round((i / bytes.length) * 100)}%`);
+                }
             }
-
             // 5. Execute (Ctrl+D) - 0x04 triggers Soft Reboot
             console.log("🚀 Step 5: Sending Ctrl+D (Execute)...");
             await writeRaw(new Uint8Array([0x04]));
