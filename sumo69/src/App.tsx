@@ -29,8 +29,7 @@ function App() {
   const [activeMode, setActiveMode] = useState(0);
   const [highlightedPort] = useState<string | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
-  const { isConnected, isConnecting, connect, disconnect, deviceName, error } = usePybricksBle();
-
+    const { isConnected, isConnecting, connect, disconnect, deviceName, error, uploadScript, sendStop, validateScript, output, clearOutput } = usePybricksBle();
   const status = isConnecting
     ? { label: 'SYNCHRONIZING...', color: 'text-neon-orange animate-pulse' }
     : isConnected
@@ -274,8 +273,15 @@ function App() {
               </div>
             </div>
           </Grid>
-        </div>
-
+              <ScriptUploader 
+                config={config} 
+                isConnected={isConnected}
+                uploadScript={uploadScript}
+                sendStop={sendStop}
+                validateScript={validateScript}
+                output={output}
+                clearOutput={clearOutput}
+              />
         {/* Error Banner */}
         {error && (
           <div className="fixed bottom-20 left-4 right-4 bg-red-950/80 border border-red-500/50 p-3 rounded flex items-center gap-3 animate-in fade-in slide-in-from-bottom-2 z-50">
