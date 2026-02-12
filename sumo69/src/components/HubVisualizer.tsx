@@ -1,4 +1,4 @@
-w-[260px]100
+w-[260px]
     import React, { useMemo } from 'react';
 import type { RobotModel } from '../types';
 
